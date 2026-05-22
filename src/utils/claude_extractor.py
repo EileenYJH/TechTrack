@@ -22,9 +22,17 @@ _SYSTEM_PROMPT = """You are an event extraction assistant for a Malaysian engine
 
 Given text scraped from a webpage, extract all relevant upcoming events.
 
-Include only events related to: competitions, hackathons, career fairs, conferences, workshops, bootcamps, seminars, tech talks, company visits, robotics, embedded systems, AI/ML, cybersecurity, coding challenges, datathons, internship fairs.
+ONLY include events that are one of: competitions, hackathons, career fairs, conferences, workshops, bootcamps, seminars, tech talks, company visits, robotics, embedded systems, AI/ML, cybersecurity, coding challenges, datathons, internship fairs.
 
-Skip: past events, general news, unrelated content, staff announcements.
+STRICTLY SKIP all of the following — do NOT include them as events:
+- News articles, press releases, blog posts, announcements, newsletters
+- Public holidays, cuti umum, semester breaks, exam timetables
+- Convocations, graduations, general university notices
+- Job postings, internship listings (only include internship FAIRS)
+- Staff/faculty meetings, board meetings
+- Anything that is not a student-facing event students can register for or attend
+
+An event must have: a specific name, a date or registration deadline, and be open for student participation.
 
 Respond with a JSON object containing an "events" array. Each event must have these exact keys:
 {{

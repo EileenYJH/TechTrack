@@ -91,11 +91,18 @@ def init_db() -> None:
             cur.execute(
                 "ALTER TABLE events ADD COLUMN IF NOT EXISTS bookmarked INTEGER DEFAULT 0"
             )
+            cur.execute(
+                "ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''"
+            )
         else:
-            try:
-                cur.execute("ALTER TABLE events ADD COLUMN bookmarked INTEGER DEFAULT 0")
-            except Exception:
-                pass  # column already exists
+            for col_sql in [
+                "ALTER TABLE events ADD COLUMN bookmarked INTEGER DEFAULT 0",
+                "ALTER TABLE events ADD COLUMN image_url TEXT DEFAULT ''",
+            ]:
+                try:
+                    cur.execute(col_sql)
+                except Exception:
+                    pass  # column already exists
 
 
 def _event_id(event: Event) -> str:
@@ -117,15 +124,15 @@ def upsert_event(event: Event) -> bool:
             INSERT INTO events
                 (id,title,source_name,source_url,event_url,category,country,
                  description,start_date,end_date,deadline,location,organizer,
-                 tags,scraped_at,bookmarked)
+                 tags,scraped_at,bookmarked,image_url)
             VALUES
                 ({ph},{ph},{ph},{ph},{ph},{ph},{ph},
                  {ph},{ph},{ph},{ph},{ph},{ph},
-                 {ph},{ph},0)
+                 {ph},{ph},0,{ph})
         """, (eid, d["title"], d["source_name"], d["source_url"], d["event_url"],
               d["category"], d["country"], d["description"], d["start_date"],
               d["end_date"], d["deadline"], d["location"], d["organizer"],
-              d["tags"], d["scraped_at"]))
+              d["tags"], d["scraped_at"], d.get("image_url", "")))
     return True
 
 

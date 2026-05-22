@@ -86,6 +86,7 @@ class WebScraper:
             deadline=parse_date(r.get("deadline")),
             location=r.get("location") or "",
             organizer=r.get("organizer") or self.source["name"],
+            image_url=r.get("image_url") or "",
         )
 
     def _find_event_links(self, soup: BeautifulSoup, base_url: str) -> list[tuple[str, str]]:
@@ -117,6 +118,7 @@ class WebScraper:
         description = self._extract_text(soup, _DESC_SELECTORS)
         date_text = self._extract_text(soup, _DATE_SELECTORS) or soup.get_text()
         location = self._extract_location(soup.get_text())
+        image_url = self._extract_og_image(soup)
 
         start_date, end_date, deadline = extract_dates(date_text)
         category = classify_event(title, description or "", CATEGORY_KEYWORDS)
@@ -137,7 +139,16 @@ class WebScraper:
             deadline=deadline,
             location=location,
             organizer=self.source["name"],
+            image_url=image_url,
         )
+
+    @staticmethod
+    def _extract_og_image(soup: BeautifulSoup) -> str:
+        for attr in ("og:image", "twitter:image"):
+            tag = soup.find("meta", property=attr) or soup.find("meta", attrs={"name": attr})
+            if tag and tag.get("content"):
+                return tag["content"].strip()
+        return ""
 
     def _parse_listing_page(self, soup: BeautifulSoup, base_url: str) -> list[Event]:
         """Extract events directly from a listing page (no sub-pages)."""
