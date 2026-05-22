@@ -3,6 +3,7 @@ Streamlit dashboard for the EE & CS Event Tracker.
 Run: streamlit run dashboard/app.py
 """
 import sys
+import re
 import html as _html
 from pathlib import Path
 from datetime import datetime
@@ -15,6 +16,26 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.db import init_db, get_all_events, get_stats, get_run_logs, toggle_bookmark
+
+_CODE_RE = re.compile(
+    r'[{}\[\]]|=>|\bfunction\b|\bimport\b|\bconst\b|\blet\b|\bvar\b'
+    r'|\bdef\b|\bclass\b|npm |pip |\.js\b|\.py\b|</|/>|<!--',
+    re.IGNORECASE
+)
+
+def _is_junk_event(ev: dict) -> bool:
+    title = (ev.get("title") or "").strip()
+    if not title or len(title) < 6 or len(title) > 250:
+        return True
+    if _CODE_RE.search(title):
+        return True
+    if re.search(r'[^a-zA-Z0-9\s\-–,.()/\'\":!?]{2,}', title):
+        return True
+    return False
+
+def _safe_text(text: str) -> str:
+    """Escape for HTML and strip backticks so Streamlit markdown doesn't create code blocks."""
+    return _html.escape(text).replace("`", "'")
 
 st.set_page_config(
     page_title="TechTrack — EE & CS Events",
@@ -403,18 +424,18 @@ tab_cards, tab_timeline, tab_logs = st.tabs(["Events", "Timeline", "Run Logs"])
 def _render_card(ev: dict, card_key: str):
     eid   = ev.get("id", "")
     cat   = ev.get("category") or "Other"
-    title = _html.escape(ev.get("title") or "Untitled")
+    title = _safe_text(ev.get("title") or "Untitled")
     url   = ev.get("event_url") or ""
     if not url or url in ("null", "None"):
         url = "#"
     else:
         url = _html.escape(url)
 
-    src   = _html.escape(ev.get("source_name") or "")
+    src   = _safe_text(ev.get("source_name") or "")
     start = _parse_date(ev.get("start_date"))
     dead  = _parse_date(ev.get("deadline"))
-    loc   = _html.escape(ev.get("location") or "")
-    desc  = _html.escape((ev.get("description") or "")[:150])
+    loc   = _safe_text(ev.get("location") or "")
+    desc  = _safe_text((ev.get("description") or "")[:150])
     img   = ev.get("image_url") or ""
     is_bm = bool(ev.get("bookmarked", 0))
 
@@ -472,7 +493,9 @@ with tab_cards:
         st.caption(f"**{len(all_events)}** event(s) — filtered by your sidebar settings")
 
         for group_label, cats in GROUPS:
-            group_events = [e for e in all_events if (e.get("category") or "Other") in cats]
+            group_events = [e for e in all_events
+                            if (e.get("category") or "Other") in cats
+                            and not _is_junk_event(e)]
             if not group_events:
                 continue
 

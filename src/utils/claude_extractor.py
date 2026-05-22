@@ -11,12 +11,31 @@ Setup:
 from __future__ import annotations
 
 import json
+import re
 import requests as _requests
 from datetime import date, datetime
 from typing import Optional
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 OLLAMA_MODEL = "llama3.2"
+
+_CODE_RE = re.compile(
+    r'[{}\[\]]|=>|\bfunction\b|\bimport\b|\bconst\b|\blet\b|\bvar\b'
+    r'|\bdef\b|\bclass\b|npm |pip |\.js\b|\.py\b|</|/>|<!--',
+    re.IGNORECASE
+)
+
+
+def _looks_like_code(text: str) -> bool:
+    """Return True if the text is a code snippet, not an event title."""
+    text = text.strip()
+    if not text or len(text) < 6 or len(text) > 250:
+        return True
+    if _CODE_RE.search(text):
+        return True
+    if re.search(r'[^a-zA-Z0-9\s\-–,.()/\'\":!?]{2,}', text):
+        return True
+    return False
 
 _SYSTEM_PROMPT = """You are an event extraction assistant for a Malaysian engineering and CS student tracker.
 
@@ -83,7 +102,7 @@ def extract_events(page_text: str, source_url: str, source_name: str) -> list[di
     Returns [] if Ollama is not running, no events found, or on any error.
     """
     today = date.today().isoformat()
-    trimmed = page_text[:2000]
+    trimmed = page_text[:1200]
 
     try:
         resp = _requests.post(
@@ -121,7 +140,10 @@ def extract_events(page_text: str, source_url: str, source_name: str) -> list[di
         if not isinstance(parsed, list):
             return []
 
-        results = [_normalise(e) for e in parsed if isinstance(e, dict) and (e.get("title") or e.get("name"))]
+        results = [_normalise(e) for e in parsed
+                   if isinstance(e, dict)
+                   and (e.get("title") or e.get("name"))
+                   and not _looks_like_code(str(e.get("title") or e.get("name", "")))]
         # Strip any "null" strings the model may have written
         for r in results:
             for k, v in r.items():

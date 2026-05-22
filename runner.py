@@ -5,6 +5,7 @@ Run directly: python runner.py
 import sys
 from pathlib import Path
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yaml
 from rich.console import Console
@@ -23,6 +24,8 @@ from src.notifier import send_digest
 
 console = Console()
 
+_MAX_WORKERS = 5  # parallel source scrapers
+
 
 def load_config() -> dict:
     with open(ROOT / "config.yaml") as f:
@@ -30,13 +33,40 @@ def load_config() -> dict:
 
 
 def _upsert_collect(events: list, new_events: list) -> int:
-    """Insert new events, collect them into new_events. Returns count added."""
     added = 0
     for e in events:
         if upsert_event(e):
             added += 1
             new_events.append(e.to_dict())
     return added
+
+
+def _scrape_one(source: dict, keywords: list) -> tuple[str, list, str | None]:
+    """Scrape a single source. Returns (name, events, error_or_None)."""
+    try:
+        scraper = WebScraper(source, keywords)
+        return source["name"], scraper.scrape(), None
+    except Exception as ex:
+        return source["name"], [], str(ex)
+
+
+def _scrape_group(sources: list[dict], keywords: list, label: str, new_events: list) -> tuple[int, int]:
+    """Scrape a group of sources in parallel. Returns (found, added)."""
+    found = added = 0
+    with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as pool:
+        futures = {pool.submit(_scrape_one, src, keywords): src for src in sources}
+        for future in as_completed(futures):
+            name, events, error = future.result()
+            if error:
+                log_run(name, 0, 0, error)
+                console.print(f"  [red]FAILED[/] {name}: {error}")
+            else:
+                added_here = _upsert_collect(events, new_events)
+                added += added_here
+                found += len(events)
+                log_run(name, len(events), added_here)
+    console.print(f"  [green]{label}[/]: found {found}, added {added} new")
+    return found, added
 
 
 def run_all(verbose: bool = True) -> dict[str, int]:
@@ -47,67 +77,37 @@ def run_all(verbose: bool = True) -> dict[str, int]:
     cfg = load_config()
     keywords = cfg["keywords"]
     totals: dict[str, int] = {}
-    new_events: list[dict] = []  # collected for email digest
+    new_events: list[dict] = []
 
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True) as prog:
 
-        # ── University sites ──────────────────────────────
+        # ── Universities (parallel) ───────────────────────────────
         task = prog.add_task("Scraping university sites…", total=None)
-        uni_found = uni_added = 0
-        for uni in cfg.get("universities", []):
-            prog.update(task, description=f"University: {uni['name']}")
-            try:
-                scraper = WebScraper(uni, keywords)
-                events = scraper.scrape()
-                added_here = _upsert_collect(events, new_events)
-                uni_added += added_here
-                uni_found += len(events)
-                log_run(uni["name"], len(events), added_here)
-            except Exception as ex:
-                log_run(uni["name"], 0, 0, str(ex))
-                if verbose:
-                    console.print(f"  [red]FAILED[/] {uni['name']}: {ex}")
+        _, uni_added = _scrape_group(
+            cfg.get("universities", []), keywords, "Universities", new_events
+        )
         totals["Universities"] = uni_added
-        console.print(f"  [green]Universities[/]: found {uni_found}, added {uni_added} new")
+        prog.remove_task(task)
 
-        # ── Organisations (IEEE, IEM, etc.) ───────────────
+        # ── Organisations (parallel) ──────────────────────────────
         task = prog.add_task("Scraping organisations…", total=None)
-        org_found = org_added = 0
-        for org in cfg.get("organizations", []):
-            prog.update(task, description=f"Org: {org['name']}")
-            try:
-                scraper = WebScraper(org, keywords)
-                events = scraper.scrape()
-                added_here = _upsert_collect(events, new_events)
-                org_added += added_here
-                org_found += len(events)
-                log_run(org["name"], len(events), added_here)
-            except Exception as ex:
-                log_run(org["name"], 0, 0, str(ex))
+        _, org_added = _scrape_group(
+            cfg.get("organizations", []), keywords, "Organisations", new_events
+        )
         totals["Organisations"] = org_added
-        console.print(f"  [green]Organisations[/]: found {org_found}, added {org_added} new")
+        prog.remove_task(task)
 
-        # ── Company sites ─────────────────────────────────
+        # ── Companies (parallel) ──────────────────────────────────
         task = prog.add_task("Scraping company sites…", total=None)
-        co_found = co_added = 0
-        for company in cfg.get("companies", []):
-            prog.update(task, description=f"Company: {company['name']}")
-            try:
-                scraper = WebScraper(company, keywords)
-                events = scraper.scrape()
-                added_here = _upsert_collect(events, new_events)
-                co_added += added_here
-                co_found += len(events)
-                log_run(company["name"], len(events), added_here)
-            except Exception as ex:
-                log_run(company["name"], 0, 0, str(ex))
+        _, co_added = _scrape_group(
+            cfg.get("companies", []), keywords, "Companies", new_events
+        )
         totals["Companies"] = co_added
-        console.print(f"  [green]Companies[/]: found {co_found}, added {co_added} new")
+        prog.remove_task(task)
 
-        # ── Eventbrite / aggregators ──────────────────────
-        task = prog.add_task("Scraping event aggregators…", total=None)
+        # ── Eventbrite / aggregators ──────────────────────────────
+        task = prog.add_task("Scraping aggregators…", total=None)
         try:
-            prog.update(task, description="Eventbrite + MLH…")
             scraper = EventbriteScraper(cfg.get("aggregators", []), keywords)
             events = scraper.scrape()
             agg_added = _upsert_collect(events, new_events)
@@ -117,11 +117,11 @@ def run_all(verbose: bool = True) -> dict[str, int]:
         except Exception as ex:
             log_run("Aggregators", 0, 0, str(ex))
             console.print(f"  [red]FAILED Aggregators[/]: {ex}")
+        prog.remove_task(task)
 
-        # ── DuckDuckGo search discovery ───────────────────
+        # ── DuckDuckGo search ─────────────────────────────────────
         task = prog.add_task("Running search discovery…", total=None)
         try:
-            prog.update(task, description="DuckDuckGo search…")
             scraper = SearchScraper(cfg.get("search_queries", []), keywords)
             events = scraper.scrape()
             search_added = _upsert_collect(events, new_events)
@@ -131,13 +131,13 @@ def run_all(verbose: bool = True) -> dict[str, int]:
         except Exception as ex:
             log_run("Search", 0, 0, str(ex))
             console.print(f"  [red]FAILED Search[/]: {ex}")
+        prog.remove_task(task)
 
-        # ── Instagram ─────────────────────────────────────
-        task = prog.add_task("Scraping Instagram…", total=None)
+        # ── Instagram ─────────────────────────────────────────────
         accounts = cfg.get("instagram_accounts", [])
         if accounts:
+            task = prog.add_task("Scraping Instagram…", total=None)
             try:
-                prog.update(task, description="Instagram public profiles…")
                 scraper = InstagramScraper(accounts, keywords)
                 events = scraper.scrape()
                 ig_added = _upsert_collect(events, new_events)
@@ -147,8 +147,9 @@ def run_all(verbose: bool = True) -> dict[str, int]:
             except Exception as ex:
                 log_run("Instagram", 0, 0, str(ex))
                 console.print(f"  [yellow]Instagram skipped[/]: {ex}")
+            prog.remove_task(task)
 
-    # ── Summary ───────────────────────────────────────────
+    # ── Summary ────────────────────────────────────────────────────
     console.print()
     console.rule("[bold]Summary")
     table = Table(show_header=True, header_style="bold cyan")
@@ -161,12 +162,10 @@ def run_all(verbose: bool = True) -> dict[str, int]:
         stats = get_stats()
         console.print(f"\n  Total in DB: [bold]{stats['total']}[/]  |  Upcoming: [bold]{stats['upcoming']}[/]")
     except Exception:
-        console.print("\n  (Could not fetch DB stats — check connection)")
+        console.print("\n  (Could not fetch DB stats)")
     console.print(f"  Launch dashboard: [cyan]streamlit run dashboard/app.py[/]\n")
 
-    # ── Email digest ──────────────────────────────────────
     send_digest(new_events, cfg)
-
     return totals
 
 

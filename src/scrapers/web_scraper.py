@@ -13,13 +13,34 @@ from ..utils.http import get_html, polite_sleep
 from ..utils.date_parser import extract_dates, classify_event, CATEGORY_KEYWORDS
 
 
-# Terms that disqualify a line from being treated as an event
 _BLOCKLIST = [
     "cuti umum", "public holiday", "hari kelepasan", "hari cuti",
     "tutup", "closed", "inaccessible", "maintenance", "convocation",
     "graduation", "commencement", "semester break", "cuti semester",
     "exam timetable", "jadual peperiksaan",
+    "press release", "media release", "newsletter", "staff announcement",
+    "minutes of meeting", "job vacancy", "jawatan kosong",
 ]
+
+# Patterns that indicate the "title" is actually code/markup, not an event name
+_CODE_PATTERNS = re.compile(
+    r'[{}\[\]<>]|=>|\bfunction\b|\bimport\b|\bconst\b|\blet\b|\bvar\b'
+    r'|\bdef\b|\bclass\b|npm |pip |\.js\b|\.py\b|</|/>|<!--',
+    re.IGNORECASE
+)
+
+
+def _is_code_title(text: str) -> bool:
+    """Return True if the text looks like scraped code rather than an event title."""
+    text = text.strip()
+    if not text or len(text) < 6 or len(text) > 250:
+        return True
+    if _CODE_PATTERNS.search(text):
+        return True
+    # Reject if more than 2 non-word chars in a row (e.g. `==`, `&&`, `::`)
+    if re.search(r'[^a-zA-Z0-9\s\-–,.()/\'\":!?]{2,}', text):
+        return True
+    return False
 
 # CSS selectors commonly used for event listings
 _LINK_SELECTORS = [
@@ -63,7 +84,7 @@ class WebScraper:
         # Fallback: traditional BeautifulSoup + link-following
         events: list[Event] = []
         event_links = self._find_event_links(soup, self.source["url"])
-        for url, title in event_links[:30]:
+        for url, title in event_links[:8]:  # cap at 8 to keep runtime short
             polite_sleep(0.5, 1.5)
             event = self._scrape_event_page(url, title)
             if event:
@@ -157,7 +178,7 @@ class WebScraper:
         lines = [l.strip() for l in text.splitlines() if len(l.strip()) > 10]
 
         for i, line in enumerate(lines):
-            if not self._is_relevant(line):
+            if not self._is_relevant(line) or _is_code_title(line):
                 continue
             ctx = "\n".join(lines[max(0, i-2): i+5])
             start_date, end_date, deadline = extract_dates(ctx)
