@@ -14,12 +14,18 @@ from ..utils.date_parser import extract_dates, classify_event, CATEGORY_KEYWORDS
 
 
 _BLOCKLIST = [
+    # Non-events
     "cuti umum", "public holiday", "hari kelepasan", "hari cuti",
     "tutup", "closed", "inaccessible", "maintenance", "convocation",
     "graduation", "commencement", "semester break", "cuti semester",
     "exam timetable", "jadual peperiksaan",
     "press release", "media release", "newsletter", "staff announcement",
     "minutes of meeting", "job vacancy", "jawatan kosong",
+    # Secondary school / pre-university — not our audience
+    "secondary school", "high school", "sekolah menengah", "sekolah rendah",
+    "primary school", "spm students", "form 4", "form 5", "form 6",
+    "spm level", "stpm", "pt3", "upsr", "lower secondary", "upper secondary",
+    "school students only", "open to school", "for schools",
 ]
 
 # Patterns that indicate the "title" is actually code/markup, not an event name

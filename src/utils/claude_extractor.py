@@ -12,12 +12,17 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import requests as _requests
 from datetime import date, datetime
 from typing import Optional
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 OLLAMA_MODEL = "llama3.2"
+
+# Ollama is single-threaded — serialise all calls so parallel scrapers
+# don't queue up and all hit the 120s timeout.
+_OLLAMA_LOCK = threading.Semaphore(1)
 
 _CODE_RE = re.compile(
     r'[{}\[\]]|=>|\bfunction\b|\bimport\b|\bconst\b|\blet\b|\bvar\b'
@@ -37,9 +42,11 @@ def _looks_like_code(text: str) -> bool:
         return True
     return False
 
-_SYSTEM_PROMPT = """You are an event extraction assistant for a Malaysian engineering and CS student tracker.
+_SYSTEM_PROMPT = """You are an event extraction assistant for a Malaysian university engineering and CS student tracker.
 
 Given text scraped from a webpage, extract all relevant upcoming events.
+
+TARGET AUDIENCE: Malaysian university undergraduate and postgraduate students (degree/diploma level).
 
 ONLY include events that are one of: competitions, hackathons, career fairs, conferences, workshops, bootcamps, seminars, tech talks, company visits, robotics, embedded systems, AI/ML, cybersecurity, coding challenges, datathons, internship fairs.
 
@@ -49,9 +56,11 @@ STRICTLY SKIP all of the following — do NOT include them as events:
 - Convocations, graduations, general university notices
 - Job postings, internship listings (only include internship FAIRS)
 - Staff/faculty meetings, board meetings
-- Anything that is not a student-facing event students can register for or attend
+- Events EXCLUSIVELY for secondary school / high school students (SPM, Form 4/5/6, STPM, sekolah menengah)
+- Events EXCLUSIVELY for primary school or younger students
+- Anything that is not a student-facing event university students can register for or attend
 
-An event must have: a specific name, a date or registration deadline, and be open for student participation.
+An event must have: a specific name, a date or registration deadline, and be open for university student participation.
 
 Respond with a JSON object containing an "events" array. Each event must have these exact keys:
 {{
@@ -103,6 +112,10 @@ def extract_events(page_text: str, source_url: str, source_name: str) -> list[di
     """
     today = date.today().isoformat()
     trimmed = page_text[:1200]
+
+    if not _OLLAMA_LOCK.acquire(timeout=5):
+        # Another thread is already using Ollama — skip and let BS4 fallback handle this page
+        return []
 
     try:
         resp = _requests.post(
@@ -157,6 +170,8 @@ def extract_events(page_text: str, source_url: str, source_name: str) -> list[di
     except Exception as e:
         print(f"[Ollama] Extraction error for {source_name}: {e}")
         return []
+    finally:
+        _OLLAMA_LOCK.release()
 
 
 def parse_date(val: Optional[str]) -> Optional[datetime]:
