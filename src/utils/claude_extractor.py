@@ -75,7 +75,7 @@ def extract_events(page_text: str, source_url: str, source_name: str) -> list[di
     Returns [] if Ollama is not running, no events found, or on any error.
     """
     today = date.today().isoformat()
-    trimmed = page_text[:3000]
+    trimmed = page_text[:2000]
 
     try:
         resp = _requests.post(

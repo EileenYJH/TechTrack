@@ -13,6 +13,14 @@ from ..utils.http import get_html, polite_sleep
 from ..utils.date_parser import extract_dates, classify_event, CATEGORY_KEYWORDS
 
 
+# Terms that disqualify a line from being treated as an event
+_BLOCKLIST = [
+    "cuti umum", "public holiday", "hari kelepasan", "hari cuti",
+    "tutup", "closed", "inaccessible", "maintenance", "convocation",
+    "graduation", "commencement", "semester break", "cuti semester",
+    "exam timetable", "jadual peperiksaan",
+]
+
 # CSS selectors commonly used for event listings
 _LINK_SELECTORS = [
     "a[href*='event']",
@@ -162,6 +170,8 @@ class WebScraper:
 
     def _is_relevant(self, text: str) -> bool:
         text_lower = text.lower()
+        if any(block in text_lower for block in _BLOCKLIST):
+            return False
         return any(kw.lower() in text_lower for kw in self.keywords)
 
     @staticmethod

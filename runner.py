@@ -149,7 +149,6 @@ def run_all(verbose: bool = True) -> dict[str, int]:
                 console.print(f"  [yellow]Instagram skipped[/]: {ex}")
 
     # ── Summary ───────────────────────────────────────────
-    stats = get_stats()
     console.print()
     console.rule("[bold]Summary")
     table = Table(show_header=True, header_style="bold cyan")
@@ -158,7 +157,11 @@ def run_all(verbose: bool = True) -> dict[str, int]:
     for src, count in totals.items():
         table.add_row(src, str(count))
     console.print(table)
-    console.print(f"\n  Total in DB: [bold]{stats['total']}[/]  |  Upcoming: [bold]{stats['upcoming']}[/]")
+    try:
+        stats = get_stats()
+        console.print(f"\n  Total in DB: [bold]{stats['total']}[/]  |  Upcoming: [bold]{stats['upcoming']}[/]")
+    except Exception:
+        console.print("\n  (Could not fetch DB stats — check connection)")
     console.print(f"  Launch dashboard: [cyan]streamlit run dashboard/app.py[/]\n")
 
     # ── Email digest ──────────────────────────────────────
