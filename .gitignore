@@ -1,6 +1,7 @@
 venv/
 data/
 __pycache__/
+.streamlit/secrets.toml
 *.py[cod]
 *.db
 *.db-journal
