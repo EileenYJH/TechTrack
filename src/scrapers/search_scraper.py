@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 from ..models import Event
 from ..utils.http import get_html, polite_sleep
@@ -43,7 +44,7 @@ class SearchScraper:
 
     def _ddg_search(self, query: str) -> list[dict]:
         try:
-            from duckduckgo_search import DDGS
+            from ddgs import DDGS
             results = []
             with DDGS() as ddgs:
                 for r in ddgs.text(query, max_results=10):

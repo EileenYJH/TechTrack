@@ -66,7 +66,7 @@ def run_all(verbose: bool = True) -> dict[str, int]:
             except Exception as ex:
                 log_run(uni["name"], 0, 0, str(ex))
                 if verbose:
-                    console.print(f"  [red]✗[/] {uni['name']}: {ex}")
+                    console.print(f"  [red]FAILED[/] {uni['name']}: {ex}")
         totals["Universities"] = uni_added
         console.print(f"  [green]Universities[/]: found {uni_found}, added {uni_added} new")
 
@@ -116,7 +116,7 @@ def run_all(verbose: bool = True) -> dict[str, int]:
             console.print(f"  [green]Aggregators[/]: found {len(events)}, added {agg_added} new")
         except Exception as ex:
             log_run("Aggregators", 0, 0, str(ex))
-            console.print(f"  [red]✗ Aggregators[/]: {ex}")
+            console.print(f"  [red]FAILED Aggregators[/]: {ex}")
 
         # ── DuckDuckGo search discovery ───────────────────
         task = prog.add_task("Running search discovery…", total=None)
@@ -130,7 +130,7 @@ def run_all(verbose: bool = True) -> dict[str, int]:
             console.print(f"  [green]Search discovery[/]: found {len(events)}, added {search_added} new")
         except Exception as ex:
             log_run("Search", 0, 0, str(ex))
-            console.print(f"  [red]✗ Search[/]: {ex}")
+            console.print(f"  [red]FAILED Search[/]: {ex}")
 
         # ── Instagram ─────────────────────────────────────
         task = prog.add_task("Scraping Instagram…", total=None)

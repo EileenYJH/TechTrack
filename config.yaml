@@ -66,11 +66,7 @@ universities:
     country: Malaysia
 
   - name: "Sunway University"
-    url: "https://university.sunway.edu.my/events"
-    country: Malaysia
-
-  - name: "Monash Malaysia"
-    url: "https://www.monash.edu.my/pages/upcoming"
+    url: "https://sunway.edu.my/news"
     country: Malaysia
 
   - name: "APU (Asia Pacific University)"
@@ -89,10 +85,6 @@ organizations:
 
   - name: "IEM (Institution of Engineers Malaysia)"
     url: "https://www.myiem.org.my/events/main.aspx"
-    country: Malaysia
-
-  - name: "CyberSecurity Malaysia"
-    url: "https://www.cybersecurity.my/en/events/"
     country: Malaysia
 
   - name: "MDEC (Malaysia Digital Economy)"
@@ -117,9 +109,6 @@ companies:
     url: "https://aws.amazon.com/events/"
     country: International
 
-  - name: "Petronas"
-    url: "https://www.petronas.com/news-media"
-    country: Malaysia
 
 # ── Event aggregators ─────────────────────────────
 aggregators:
