@@ -18,87 +18,241 @@ from src.db import init_db, get_all_events, get_stats, get_run_logs, toggle_book
 
 st.set_page_config(
     page_title="TechTrack — EE & CS Events",
-    page_icon="⚡",
+    page_icon="T",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+    background-color: #f7fafd;
+    color: #181c1e;
+}
+
 #MainMenu, footer, header { visibility: hidden; }
+
+/* Parallax grid background */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(to right, rgba(74,62,230,0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(74,62,230,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Scanline overlay */
+body::before {
+    content: " ";
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(rgba(255,255,255,0) 50%, rgba(0,0,0,0.04) 50%);
+    z-index: 9999;
+    background-size: 100% 4px;
+    pointer-events: none;
+    opacity: 0.15;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: rgba(255,255,255,0.9) !important;
+    backdrop-filter: blur(12px);
+    border-right: 1px solid rgba(74,62,230,0.15) !important;
+}
+section[data-testid="stSidebar"] > div { background: transparent !important; }
+
+/* Cyber card */
+.cyber-card {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(74,62,230,0.15);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+    transition: border-color .3s, transform .3s, box-shadow .3s;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+.cyber-card:hover {
+    border-color: #4a3ee6;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 36px rgba(74,62,230,0.10);
+}
+.cyber-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+    background: linear-gradient(90deg, #4a3ee6, transparent);
+    opacity: 0.5;
+}
+
+/* Card image area */
+.card-img {
+    height: 130px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+}
+.card-img-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(255,255,255,0.92), rgba(255,255,255,0.1));
+}
+
+/* Card body */
+.card-body { padding: 0.85rem 1rem 0.9rem 1rem; }
+.card-type-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    margin-bottom: 6px;
+}
+.badge-hackathon   { background:#ede9fe; color:#4c1d95; border:1px solid #c4b5fd; }
+.badge-competition { background:#fee2e2; color:#7f1d1d; border:1px solid #fca5a5; }
+.badge-career      { background:#dcfce7; color:#14532d; border:1px solid #86efac; }
+.badge-conference  { background:#dbeafe; color:#1e3a8a; border:1px solid #93c5fd; }
+.badge-workshop    { background:#ffedd5; color:#7c2d12; border:1px solid #fdba74; }
+.badge-seminar     { background:#fef3c7; color:#78350f; border:1px solid #fcd34d; }
+.badge-visit       { background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; }
+.badge-other       { background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; }
+
+.card-title {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #000f22;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    margin-bottom: 5px;
+    font-style: italic;
+}
+.card-title a { color: #000f22; text-decoration: none; transition: color .2s; }
+.card-title a:hover { color: #4a3ee6; }
+
+.card-meta { font-size: 0.75rem; color: #64748b; line-height: 1.6; }
+.card-deadline { font-size: 0.73rem; color: #dc2626; font-weight: 600; margin-top: 3px; }
+.card-desc { font-size: 0.78rem; color: #475569; margin-top: 5px; line-height: 1.4; }
+
+/* Days pill */
+.days-pill   { display:inline-block; padding:1px 8px; border-radius:2px; font-size:0.68rem;
+    font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    background:#dbeafe; color:#1e3a8a; border:1px solid #93c5fd; }
+.days-urgent { background:#fee2e2; color:#7f1d1d; border-color:#fca5a5; }
+.days-soon   { background:#ffedd5; color:#7c2d12; border-color:#fdba74; }
+
+/* Stat card */
+.stat-card {
+    background: rgba(255,255,255,0.88);
+    border: 1px solid rgba(74,62,230,0.15);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+    padding: 1.2rem 1.4rem;
+    text-align: center;
+    position: relative;
+}
+.stat-card::before {
+    content: "";
+    position: absolute; top:0; left:0;
+    width:100%; height:3px;
+    background: linear-gradient(90deg, #4a3ee6, transparent);
+    opacity: 0.4;
+}
+.stat-val { font-size: 2.2rem; font-weight: 900; color: #000f22; line-height: 1; font-style: italic; }
+.stat-lbl { font-size: 0.68rem; color: #64748b; margin-top: 0.3rem;
+    text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
 
 /* Hero */
 .hero {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
-    border-radius: 16px; padding: 2rem 2.5rem; margin-bottom: 1.5rem;
-    border: 1px solid #1e40af33;
+    background: linear-gradient(135deg, #000f22 0%, #1e3a8a 60%, #4a3ee6 100%);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
 }
-.hero h1 { color: #f8fafc; font-size: 2rem; font-weight: 700; margin: 0 0 0.3rem 0; }
-.hero p  { color: #94a3b8; font-size: 1rem; margin: 0; }
-
-/* Stat cards */
-.stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px;
-    padding: 1.1rem 1.4rem; text-align: center; }
-.stat-card .val { font-size: 2rem; font-weight: 700; color: #f1f5f9; line-height: 1; }
-.stat-card .lbl { font-size: 0.78rem; color: #64748b; margin-top: 0.3rem;
-    text-transform: uppercase; letter-spacing: .06em; }
+.hero-title { color: #ffffff; font-size: 2.2rem; font-weight: 900; margin: 0 0 0.25rem 0;
+    text-transform: uppercase; letter-spacing: -0.01em; font-style: italic; }
+.hero-sub   { color: rgba(255,255,255,0.65); font-size: 0.85rem; margin: 0;
+    text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
 
 /* Section header */
 .section-header {
-    font-size: 1.15rem; font-weight: 700; color: #f1f5f9;
-    margin: 1.8rem 0 1rem 0; padding-bottom: 0.5rem;
-    border-bottom: 2px solid #1e40af44;
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #000f22;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    border-left: 4px solid #4a3ee6;
+    padding-left: 0.85rem;
+    margin: 2rem 0 1rem 0;
+    position: relative;
+}
+.section-header::after {
+    content: "";
+    position: absolute;
+    bottom: -6px; left: 0;
+    width: 40px; height: 2px;
+    background: #4a3ee6;
+}
+.section-count {
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: 0;
+    margin-left: 8px;
+    font-style: normal;
 }
 
-/* Event card */
-.ev-card {
-    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
-    overflow: hidden; margin-bottom: 1rem; transition: border-color .2s, transform .15s;
-    height: 100%;
+/* Filter bar */
+.filter-btn {
+    display: inline-block;
+    padding: 5px 14px;
+    border: 1px solid #c4c6ce;
+    background: rgba(255,255,255,0.6);
+    color: #43474d;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: .2s;
+    margin-right: 6px;
+    margin-bottom: 6px;
 }
-.ev-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
-.ev-img {
-    height: 110px; background-size: cover; background-position: center;
-    background-repeat: no-repeat; position: relative;
+.filter-btn-active {
+    background: #4a3ee6;
+    color: #ffffff;
+    border-color: #4a3ee6;
+    box-shadow: 0 4px 14px rgba(74,62,230,0.25);
 }
-.ev-img-overlay {
-    position: absolute; inset: 0; background: rgba(15,23,42,0.45);
+
+/* Streamlit button override for filter row */
+div[data-testid="column"] button[kind="secondary"] {
+    background: transparent !important;
+    border: 1px solid #c4c6ce !important;
+    color: #43474d !important;
+    font-size: 0.7rem !important;
+    font-weight: 800 !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+    border-radius: 2px !important;
+    padding: 4px 12px !important;
 }
-.ev-body { padding: 0.85rem 1rem 0.9rem 1rem; }
-.ev-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
-.ev-title { font-size: 0.95rem; font-weight: 600; color: #f1f5f9; margin-bottom: 5px;
-    line-height: 1.35; }
-.ev-title a { color: #60a5fa; text-decoration: none; }
-.ev-title a:hover { text-decoration: underline; }
-.ev-meta { font-size: 0.78rem; color: #64748b; line-height: 1.5; }
-.ev-desc { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; line-height: 1.4; }
-
-/* Badges */
-.badge { display:inline-block; padding:2px 9px; border-radius:999px;
-    font-size:0.7rem; font-weight:600; letter-spacing:.04em; }
-.badge-hackathon   { background:#7c3aed22; color:#a78bfa; border:1px solid #7c3aed55; }
-.badge-competition { background:#dc262622; color:#f87171; border:1px solid #dc262655; }
-.badge-career      { background:#05966922; color:#34d399; border:1px solid #05966955; }
-.badge-conference  { background:#1d4ed822; color:#60a5fa; border:1px solid #1d4ed855; }
-.badge-workshop    { background:#d9770622; color:#fb923c; border:1px solid #d9770655; }
-.badge-seminar     { background:#b4580622; color:#fbbf24; border:1px solid #b4580655; }
-.badge-visit       { background:#37415122; color:#94a3b8; border:1px solid #37415155; }
-.badge-other       { background:#37415122; color:#94a3b8; border:1px solid #37415155; }
-
-/* Days pill */
-.days-pill   { background:#1d4ed822; border:1px solid #1d4ed855; color:#60a5fa;
-    border-radius:8px; padding:2px 8px; font-size:0.7rem; font-weight:600; }
-.days-urgent { background:#dc262622; border-color:#dc262655; color:#f87171; }
-.days-soon   { background:#d9770622; border-color:#d9770655; color:#fb923c; }
-
-/* Sidebar */
-section[data-testid="stSidebar"] { background:#0f172a; border-right:1px solid #1e293b; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def _parse_date(val):
     if not val:
         return None
@@ -119,8 +273,14 @@ def _days_pill(start) -> str:
     days = (start.date() - datetime.now().date()).days
     if days < 0:
         return ""
-    cls = "days-urgent" if days <= 7 else ("days-soon" if days <= 30 else "days-pill")
-    label = "Today" if days == 0 else f"{days}d left"
+    if days == 0:
+        cls, label = "days-urgent", "TODAY"
+    elif days <= 7:
+        cls, label = "days-urgent", f"{days}D LEFT"
+    elif days <= 30:
+        cls, label = "days-soon", f"{days}D LEFT"
+    else:
+        cls, label = "days-pill", f"{days}D LEFT"
     return f'<span class="{cls}">{label}</span>'
 
 CAT_BADGE = {
@@ -133,28 +293,22 @@ CAT_BADGE = {
     "Company Visit":       "badge-visit",
     "Other":               "badge-other",
 }
-CAT_ICON = {
-    "Hackathon": "💻", "Competition": "🏆", "Career Fair": "💼",
-    "Conference": "🎤", "Workshop / Bootcamp": "🛠️", "Seminar / Talk": "🎙️",
-    "Company Visit": "🏢", "Other": "📌",
-}
 CAT_GRADIENT = {
     "Hackathon":           "linear-gradient(135deg,#4c1d95,#7c3aed)",
     "Competition":         "linear-gradient(135deg,#7f1d1d,#dc2626)",
-    "Career Fair":         "linear-gradient(135deg,#064e3b,#059669)",
+    "Career Fair":         "linear-gradient(135deg,#14532d,#16a34a)",
     "Conference":          "linear-gradient(135deg,#1e3a8a,#2563eb)",
     "Workshop / Bootcamp": "linear-gradient(135deg,#7c2d12,#ea580c)",
-    "Seminar / Talk":      "linear-gradient(135deg,#713f12,#d97706)",
+    "Seminar / Talk":      "linear-gradient(135deg,#78350f,#d97706)",
     "Company Visit":       "linear-gradient(135deg,#1e293b,#475569)",
     "Other":               "linear-gradient(135deg,#1e293b,#475569)",
 }
 
-# Priority groups for category sections
 GROUPS = [
-    ("🏆  Competitions & Hackathons", ["Competition", "Hackathon"]),
-    ("🛠️  Workshops & Seminars",      ["Workshop / Bootcamp", "Seminar / Talk"]),
-    ("🎤  Conferences",               ["Conference"]),
-    ("💼  Career Fairs & Others",     ["Career Fair", "Company Visit", "Other"]),
+    ("Competitions & Hackathons", ["Competition", "Hackathon"]),
+    ("Workshops & Seminars",      ["Workshop / Bootcamp", "Seminar / Talk"]),
+    ("Conferences",               ["Conference"]),
+    ("Career Fairs & Others",     ["Career Fair", "Company Visit", "Other"]),
 ]
 
 init_db()
@@ -163,28 +317,38 @@ with open(ROOT / "config.yaml") as f:
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### ⚡ TechTrack")
-    st.caption("EE & CS events for Malaysian students")
-    st.divider()
+    st.markdown("""
+    <div style="padding:1rem 0.5rem 1.5rem 0.5rem">
+        <div style="font-size:1.35rem;font-weight:900;letter-spacing:-0.02em;font-style:italic">
+            <span style="color:#4a3ee6">TECH</span><span style="color:#000f22">TRACK</span>
+        </div>
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#94a3b8;margin-top:2px">
+            Sector: Events_Nexus
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    search = st.text_input("🔍 Search", placeholder="hackathon, IEEE, robotics…")
+    search = st.text_input("Search", placeholder="IEEE, hackathon, robotics…", label_visibility="collapsed")
+
     country_options = ["All", "Malaysia", "Singapore", "Indonesia", "International", "Regional"]
-    selected_country = st.selectbox("Country", country_options)
-    show_past        = st.toggle("Show past events",   value=False)
-    bookmarked_only  = st.toggle("⭐ Bookmarked only", value=False)
+    selected_country = st.selectbox("Country", country_options, label_visibility="visible")
+
+    show_past       = st.toggle("Show past events",  value=False)
+    bookmarked_only = st.toggle("Bookmarked only",   value=False)
 
     st.divider()
-    if st.button("🔄 Run Scraper", use_container_width=True, type="primary"):
-        with st.spinner("Scraping… this may take a few minutes"):
+
+    if st.button("Run Scraper", use_container_width=True, type="primary"):
+        with st.spinner("Scraping — this may take a few minutes…"):
             try:
                 from runner import run_all
                 run_all(verbose=False)
-                st.success("Done! Refresh to see new events.")
+                st.success("Done. Refresh to see new events.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Scraper error: {e}")
 
-    with st.expander("➕ Add source"):
+    with st.expander("Add source"):
         new_name    = st.text_input("Name",    key="new_name")
         new_url     = st.text_input("URL",     key="new_url")
         new_type    = st.selectbox("Type", ["universities","organizations","companies","aggregators"], key="new_type")
@@ -196,15 +360,16 @@ with st.sidebar:
                     yaml.dump(cfg, f, allow_unicode=True, sort_keys=False)
                 st.success(f"Added {new_name}.")
             else:
-                st.warning("Fill in both name and URL.")
+                st.warning("Fill in name and URL.")
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
 stats = get_stats()
 last  = _fmt_time(stats["last_run"]) if stats["last_run"] != "Never" else "Never"
+
 st.markdown(f"""
 <div class="hero">
-    <h1>⚡ TechTrack</h1>
-    <p>Engineering &amp; CS events across Malaysia and beyond &nbsp;·&nbsp; Last updated: {last}</p>
+    <div class="hero-title">TechTrack</div>
+    <div class="hero-sub">Engineering &amp; CS Events &nbsp;//&nbsp; Malaysia &amp; Beyond &nbsp;//&nbsp; Updated: {last}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -216,10 +381,9 @@ for col, val, lbl in [
     (c3, stats["bookmarked"], "Bookmarked"),
     (c4, len(stats.get("by_category", {})), "Categories"),
 ]:
-    col.markdown(f"""
-    <div class="stat-card">
-        <div class="val">{val}</div>
-        <div class="lbl">{lbl}</div>
+    col.markdown(f"""<div class="stat-card">
+        <div class="stat-val">{val}</div>
+        <div class="stat-lbl">{lbl}</div>
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -233,16 +397,15 @@ all_events = get_all_events(
 )
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab_cards, tab_timeline, tab_logs = st.tabs(["📋 Events", "📅 Timeline", "📊 Run Logs"])
+tab_cards, tab_timeline, tab_logs = st.tabs(["Events", "Timeline", "Run Logs"])
 
 
-def _render_card(ev: dict, col_key: str):
-    """Render a single event card inside a Streamlit column."""
+def _render_card(ev: dict, card_key: str):
     eid   = ev.get("id", "")
     cat   = ev.get("category") or "Other"
     title = _html.escape(ev.get("title") or "Untitled")
     url   = ev.get("event_url") or ""
-    if url in ("null", "None", "", None):
+    if not url or url in ("null", "None"):
         url = "#"
     else:
         url = _html.escape(url)
@@ -251,71 +414,73 @@ def _render_card(ev: dict, col_key: str):
     start = _parse_date(ev.get("start_date"))
     dead  = _parse_date(ev.get("deadline"))
     loc   = _html.escape(ev.get("location") or "")
-    desc  = _html.escape((ev.get("description") or "")[:160])
+    desc  = _html.escape((ev.get("description") or "")[:150])
     img   = ev.get("image_url") or ""
     is_bm = bool(ev.get("bookmarked", 0))
 
     badge_cls = CAT_BADGE.get(cat, "badge-other")
-    icon      = CAT_ICON.get(cat, "📌")
     gradient  = CAT_GRADIENT.get(cat, CAT_GRADIENT["Other"])
     date_str  = start.strftime("%d %b %Y") if start else "Date TBA"
-    dead_str  = f"Deadline: {dead.strftime('%d %b %Y')}" if dead else ""
 
-    # Image area
     if img and img.startswith("http"):
-        img_style = f'background-image:url("{_html.escape(img)}"); {gradient.replace("linear-gradient","linear-gradient")}'
-        img_bg = f'background:{gradient}; background-image:url("{_html.escape(img)}")'
+        bg_style = f'background:{gradient}; background-image:url("{_html.escape(img)}")'
     else:
-        img_bg = f"background:{gradient}"
+        bg_style = f"background:{gradient}"
 
     days_html  = _days_pill(start)
-    meta_parts = [f"📅 {date_str}", src]
+    dead_html  = f'<div class="card-deadline">Deadline: {dead.strftime("%d %b %Y")}</div>' if dead else ""
+    desc_html  = f'<div class="card-desc">{desc}{"…" if len(ev.get("description","")) > 150 else ""}</div>' if desc else ""
+    meta_parts = [date_str, src]
     if loc:
-        meta_parts.append(f"📍 {loc}")
-    meta = " &nbsp;·&nbsp; ".join(meta_parts)
+        meta_parts.append(loc)
 
     card_html = f"""
-<div class="ev-card">
-  <div class="ev-img" style="{img_bg}">
-    <div class="ev-img-overlay"></div>
+<div class="cyber-card">
+  <div class="card-img" style="{bg_style}">
+    <div class="card-img-overlay"></div>
   </div>
-  <div class="ev-body">
-    <div class="ev-badges">
-      <span class="badge {badge_cls}">{icon} {_html.escape(cat)}</span>
+  <div class="card-body">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">
+      <span class="card-type-badge {badge_cls}">{_html.escape(cat)}</span>
       {days_html}
     </div>
-    <div class="ev-title"><a href="{url}" target="_blank">{title}</a></div>
-    <div class="ev-meta">{meta}</div>
-    {"<div class='ev-meta' style='color:#f87171'>" + dead_str + "</div>" if dead_str else ""}
-    {"<div class='ev-desc'>" + desc + ("…" if len(ev.get("description","")) > 160 else "") + "</div>" if desc else ""}
+    <div class="card-title"><a href="{url}" target="_blank">{title}</a></div>
+    <div class="card-meta">{" &nbsp;/&nbsp; ".join(meta_parts)}</div>
+    {dead_html}
+    {desc_html}
   </div>
 </div>"""
 
-    card_col, btn_col = st.columns([5, 1])
-    with card_col:
+    col_card, col_btn = st.columns([5, 1])
+    with col_card:
         st.markdown(card_html, unsafe_allow_html=True)
-    with btn_col:
-        st.markdown("<div style='margin-top:20px'>", unsafe_allow_html=True)
-        bm_label = "⭐" if is_bm else "☆"
-        if eid and st.button(bm_label, key=f"bm_{col_key}_{eid}", help="Bookmark", use_container_width=True):
+    with col_btn:
+        st.markdown("<div style='margin-top:22px'>", unsafe_allow_html=True)
+        bm_label = "★" if is_bm else "☆"
+        if eid and st.button(bm_label, key=f"bm_{card_key}_{eid}",
+                             help="Bookmark", use_container_width=True):
             toggle_bookmark(eid)
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ── Tab 1: Category sections ──────────────────────────────────────────────────
+# ── Tab 1: Category sections ─────────────────────────────────────────────────
 with tab_cards:
     if not all_events:
-        st.info("No events found. Try adjusting your filters or running the scraper.")
+        st.info("No events found. Adjust filters or run the scraper.")
     else:
-        st.caption(f"**{len(all_events)}** event(s) found")
+        st.caption(f"**{len(all_events)}** event(s) — filtered by your sidebar settings")
 
         for group_label, cats in GROUPS:
             group_events = [e for e in all_events if (e.get("category") or "Other") in cats]
             if not group_events:
                 continue
 
-            st.markdown(f'<div class="section-header">{group_label} <span style="color:#475569;font-size:0.85rem;font-weight:400">({len(group_events)})</span></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="section-header">{group_label}'
+                f'<span class="section-count">({len(group_events)})</span></div>',
+                unsafe_allow_html=True
+            )
 
             cols = st.columns(3)
             for i, ev in enumerate(group_events):
@@ -327,10 +492,10 @@ with tab_cards:
 with tab_timeline:
     dated = [e for e in all_events if e.get("start_date")]
     if not dated:
-        st.info("No events with confirmed dates to display.")
+        st.info("No events with confirmed dates.")
     else:
         df = pd.DataFrame([{
-            "⭐":       "⭐" if e.get("bookmarked") else "",
+            "Bm":       "★" if e.get("bookmarked") else "",
             "Title":    e["title"][:60],
             "Date":     pd.to_datetime(e["start_date"]),
             "Deadline": pd.to_datetime(e["deadline"]) if e.get("deadline") else None,
@@ -344,11 +509,11 @@ with tab_timeline:
             column_config={
                 "Date":     st.column_config.DatetimeColumn("Event Date", format="DD MMM YYYY"),
                 "Deadline": st.column_config.DatetimeColumn("Deadline",   format="DD MMM YYYY"),
-                "⭐":       st.column_config.TextColumn("", width="small"),
+                "Bm":       st.column_config.TextColumn("", width="small"),
             },
         )
         csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇ Download CSV", csv, "techtrack_events.csv", "text/csv")
+        st.download_button("Download CSV", csv, "techtrack_events.csv", "text/csv")
 
 
 # ── Tab 3: Run Logs ───────────────────────────────────────────────────────────
