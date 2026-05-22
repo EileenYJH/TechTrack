@@ -97,6 +97,7 @@ organizations:
 
 # ── Company / industry events ─────────────────────
 companies:
+  # Tech giants
   - name: "Google GDSC Events"
     url: "https://developers.google.com/community/gdsc/events"
     country: International
@@ -109,6 +110,32 @@ companies:
     url: "https://aws.amazon.com/events/"
     country: International
 
+  - name: "NVIDIA Developer Events"
+    url: "https://www.nvidia.com/en-us/events/"
+    country: International
+
+  # EE / Semiconductor industry (hardware-focused)
+  - name: "Infineon Technologies Events"
+    url: "https://www.infineon.com/cms/en/about-infineon/press/events/"
+    country: International
+
+  - name: "Keysight Technologies Events"
+    url: "https://www.keysight.com/us/en/about/events.html"
+    country: International
+
+  - name: "Texas Instruments University Program"
+    url: "https://www.ti.com/design-development/university-program/overview.html"
+    country: International
+
+  - name: "Intel Events"
+    url: "https://www.intel.com/content/www/us/en/events/overview.html"
+    country: International
+
+  # AI / Data focused
+  - name: "Hugging Face Events"
+    url: "https://huggingface.co/events"
+    country: International
+
 
 # ── Event aggregators ─────────────────────────────
 aggregators:
@@ -116,24 +143,24 @@ aggregators:
     url: "https://www.eventbrite.com/d/malaysia/technology/"
     country: Malaysia
 
-  - name: "Meetup Malaysia Tech"
-    url: "https://www.meetup.com/find/?location=my&keywords=technology"
-    country: Malaysia
-
-  - name: "Devfolio Hackathons"
-    url: "https://devfolio.co/hackathons"
+  - name: "Devpost Hackathons"
+    url: "https://devpost.com/hackathons?open-to=public&order_by=recently-added"
     country: International
 
   - name: "MLH (Major League Hacking)"
     url: "https://mlh.io/seasons/2026/events"
     country: International
 
-  - name: "Hackathon.io"
-    url: "https://www.hackathon.io/events"
+  - name: "HackerEarth Challenges"
+    url: "https://www.hackerearth.com/challenges/"
     country: International
 
-  - name: "Devpost Hackathons"
-    url: "https://devpost.com/hackathons"
+  - name: "Unstop Hackathons"
+    url: "https://unstop.com/hackathons"
+    country: International
+
+  - name: "Kaggle Active Competitions"
+    url: "https://www.kaggle.com/competitions?listOption=active"
     country: International
 
   - name: "JomHack Malaysia"
@@ -147,6 +174,10 @@ aggregators:
   - name: "10times Malaysia AI"
     url: "https://10times.com/malaysia/artificial-intelligence"
     country: Malaysia
+
+  - name: "Devfolio Hackathons"
+    url: "https://devfolio.co/hackathons"
+    country: International
 
 # ── Instagram accounts to monitor ────────────────
 # Instagram blocks unauthenticated scraping — leave empty.

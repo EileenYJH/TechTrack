@@ -42,8 +42,14 @@ def _upsert_collect(events: list, new_events: list) -> int:
 
 
 def _scrape_one(source: dict, keywords: list) -> tuple[str, list, str | None]:
-    """Scrape a single source. Returns (name, events, error_or_None)."""
+    """Scrape a single source — prefers Firecrawl when API key is configured."""
     try:
+        try:
+            from src.scrapers.firecrawl_scraper import FirecrawlScraper
+            if FirecrawlScraper.is_available():
+                return source["name"], FirecrawlScraper(source, keywords).scrape(), None
+        except ImportError:
+            pass
         scraper = WebScraper(source, keywords)
         return source["name"], scraper.scrape(), None
     except Exception as ex:
