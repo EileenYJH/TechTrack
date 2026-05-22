@@ -18,6 +18,7 @@ class Event:
     location: str = ""
     organizer: str = ""
     tags: list[str] = field(default_factory=list)
+    image_url: str = ""
     scraped_at: datetime = field(default_factory=datetime.now)
 
     @property
@@ -55,5 +56,6 @@ class Event:
             "location": self.location,
             "organizer": self.organizer,
             "tags": ",".join(self.tags),
+            "image_url": self.image_url,
             "scraped_at": self.scraped_at.isoformat(),
         }

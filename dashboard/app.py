@@ -33,9 +33,17 @@ def _is_junk_event(ev: dict) -> bool:
         return True
     return False
 
+_HTML_TAG_RE = re.compile(r'<[^>]+>')
+
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and decode common entities."""
+    text = _HTML_TAG_RE.sub(' ', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    return _html.unescape(text).strip()
+
 def _safe_text(text: str) -> str:
-    """Escape for HTML and strip backticks so Streamlit markdown doesn't create code blocks."""
-    return _html.escape(text).replace("`", "'")
+    """Strip HTML tags, then escape for embedding in HTML."""
+    return _html.escape(_strip_html(text)).replace("`", "'")
 
 st.set_page_config(
     page_title="TechTrack — EE & CS Events",
@@ -332,6 +340,25 @@ GROUPS = [
     ("Career Fairs & Others",     ["Career Fair", "Company Visit", "Other"]),
 ]
 
+_CAT_NORMALISE = {
+    "bootcamp":                          "Workshop / Bootcamp",
+    "webinar":                           "Seminar / Talk",
+    "seminar":                           "Seminar / Talk",
+    "talk":                              "Seminar / Talk",
+    "workshop":                          "Workshop / Bootcamp",
+    "event":                             "Other",
+    "exhibition":                        "Other",
+    "tour/visit":                        "Company Visit",
+    "company visit / kemasukan":         "Company Visit",
+    "distance learning / pengajian asasi": "Other",
+    "prasiswazah / entry scholarship":   "Other",
+    "open day":                          "Other",
+}
+
+def _normalise_cat(cat: str | None) -> str:
+    raw = (cat or "Other").strip()
+    return _CAT_NORMALISE.get(raw.lower(), raw)
+
 init_db()
 with open(ROOT / "config.yaml") as f:
     cfg = yaml.safe_load(f)
@@ -423,7 +450,7 @@ tab_cards, tab_timeline, tab_logs = st.tabs(["Events", "Timeline", "Run Logs"])
 
 def _render_card(ev: dict, card_key: str):
     eid   = ev.get("id", "")
-    cat   = ev.get("category") or "Other"
+    cat   = _normalise_cat(ev.get("category"))
     title = _safe_text(ev.get("title") or "Untitled")
     url   = ev.get("event_url") or ""
     if not url or url in ("null", "None"):
@@ -434,8 +461,21 @@ def _render_card(ev: dict, card_key: str):
     src   = _safe_text(ev.get("source_name") or "")
     start = _parse_date(ev.get("start_date"))
     dead  = _parse_date(ev.get("deadline"))
-    loc   = _safe_text(ev.get("location") or "")
-    desc  = _safe_text((ev.get("description") or "")[:150])
+
+    # Strip HTML and validate location — skip if it looks like truncated description text
+    raw_loc = _strip_html(ev.get("location") or "").strip()
+    loc = ""
+    if raw_loc and len(raw_loc) >= 3:
+        first_char = raw_loc[0] if raw_loc else ""
+        is_truncated = first_char.islower() or raw_loc.startswith(("ation", "ion ", "ng ", "ed ", "ing "))
+        is_too_long = len(raw_loc) > 80
+        if not is_truncated and not is_too_long:
+            loc = _html.escape(raw_loc)
+
+    # Strip HTML tags from description — this is the root cause of the raw-HTML display bug
+    raw_desc = _strip_html((ev.get("description") or "")[:300]).strip()
+    desc_display = raw_desc[:150] + ("…" if len(raw_desc) > 150 else "") if raw_desc else ""
+
     img   = ev.get("image_url") or ""
     is_bm = bool(ev.get("bookmarked", 0))
 
@@ -444,39 +484,43 @@ def _render_card(ev: dict, card_key: str):
     date_str  = start.strftime("%d %b %Y") if start else "Date TBA"
 
     if img and img.startswith("http"):
-        bg_style = f'background:{gradient}; background-image:url("{_html.escape(img)}")'
+        bg_style = f'background:{gradient};background-image:url("{_html.escape(img)}");background-size:cover;background-position:center'
     else:
         bg_style = f"background:{gradient}"
 
-    days_html  = _days_pill(start)
-    dead_html  = f'<div class="card-deadline">Deadline: {dead.strftime("%d %b %Y")}</div>' if dead else ""
-    desc_html  = f'<div class="card-desc">{desc}{"…" if len(ev.get("description","")) > 150 else ""}</div>' if desc else ""
+    days_html = _days_pill(start)
+    dead_str  = f'<div class="card-deadline">Deadline: {dead.strftime("%d %b %Y")}</div>' if dead else ""
+
     meta_parts = [date_str, src]
     if loc:
         meta_parts.append(loc)
+    meta_str = " &nbsp;/&nbsp; ".join(p for p in meta_parts if p)
 
-    card_html = f"""
-<div class="cyber-card">
-  <div class="card-img" style="{bg_style}">
-    <div class="card-img-overlay"></div>
-  </div>
-  <div class="card-body">
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">
-      <span class="card-type-badge {badge_cls}">{_html.escape(cat)}</span>
-      {days_html}
-    </div>
-    <div class="card-title"><a href="{url}" target="_blank">{title}</a></div>
-    <div class="card-meta">{" &nbsp;/&nbsp; ".join(meta_parts)}</div>
-    {dead_html}
-    {desc_html}
-  </div>
-</div>"""
+    # Card HTML contains NO user text inside nested divs (prevents Streamlit HTML rendering bugs)
+    card_html = (
+        '<div class="cyber-card">'
+        f'<div class="card-img" style="{bg_style}"><div class="card-img-overlay"></div></div>'
+        '<div class="card-body">'
+        f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">'
+        f'<span class="card-type-badge {badge_cls}">{_html.escape(cat)}</span>{days_html}</div>'
+        f'<div class="card-title"><a href="{url}" target="_blank">{title}</a></div>'
+        f'<div class="card-meta">{meta_str}</div>'
+        f'{dead_str}'
+        '</div></div>'
+    )
 
     col_card, col_btn = st.columns([5, 1])
     with col_card:
         st.markdown(card_html, unsafe_allow_html=True)
+        # Description rendered as plain text OUTSIDE the card HTML block
+        if desc_display:
+            st.markdown(
+                f'<p style="font-size:0.77rem;color:#475569;margin:-4px 0 10px 0;'
+                f'line-height:1.45;padding:0 2px">{_html.escape(desc_display)}</p>',
+                unsafe_allow_html=True,
+            )
     with col_btn:
-        st.markdown("<div style='margin-top:22px'>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:18px'>", unsafe_allow_html=True)
         bm_label = "★" if is_bm else "☆"
         if eid and st.button(bm_label, key=f"bm_{card_key}_{eid}",
                              help="Bookmark", use_container_width=True):
@@ -494,7 +538,7 @@ with tab_cards:
 
         for group_label, cats in GROUPS:
             group_events = [e for e in all_events
-                            if (e.get("category") or "Other") in cats
+                            if _normalise_cat(e.get("category")) in cats
                             and not _is_junk_event(e)]
             if not group_events:
                 continue
@@ -522,7 +566,7 @@ with tab_timeline:
             "Title":    e["title"][:60],
             "Date":     pd.to_datetime(e["start_date"]),
             "Deadline": pd.to_datetime(e["deadline"]) if e.get("deadline") else None,
-            "Category": e["category"],
+            "Category": _normalise_cat(e.get("category")),
             "Country":  e["country"],
             "Source":   e["source_name"],
         } for e in dated]).sort_values("Date")
