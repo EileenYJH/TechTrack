@@ -1,0 +1,10 @@
+venv/
+data/
+__pycache__/
+*.py[cod]
+*.db
+*.db-journal
+.env
+*.egg-info/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,211 @@
+# ─────────────────────────────────────────────────
+#  Event Tracker Configuration
+#  Edit this file to add/remove sources and targets
+# ─────────────────────────────────────────────────
+
+# Keywords used to detect relevant events across all sources
+keywords:
+  - competition
+  - hackathon
+  - workshop
+  - bootcamp
+  - career fair
+  - conference
+  - symposium
+  - seminar
+  - internship fair
+  - tech talk
+  - recruitment
+  - coding challenge
+  - robotics
+  - embedded systems
+  - circuit design
+  - machine learning
+  - AI
+  - cybersecurity
+  - datathon
+  - company visit
+  - industry visit
+  - open day
+
+# Categories for classification
+categories:
+  - Competition
+  - Career Fair
+  - Conference
+  - Workshop / Bootcamp
+  - Seminar / Talk
+  - Company Visit
+  - Hackathon
+  - Other
+
+# ── University event pages ────────────────────────
+universities:
+  - name: "UTM (Universiti Teknologi Malaysia)"
+    url: "https://www.utm.my/events/"
+    country: Malaysia
+
+  - name: "UM (Universiti Malaya)"
+    url: "https://www.um.edu.my/events"
+    country: Malaysia
+
+  - name: "UTP (Universiti Teknologi Petronas)"
+    url: "https://www.utp.edu.my/Pages/News-Events/Events.aspx"
+    country: Malaysia
+
+  - name: "MMU (Multimedia University)"
+    url: "https://www.mmu.edu.my/events/"
+    country: Malaysia
+
+  - name: "UPM (Universiti Putra Malaysia)"
+    url: "https://www.upm.edu.my/news_and_events/events"
+    country: Malaysia
+
+  - name: "UTAR"
+    url: "https://www.utar.edu.my/events.jsp"
+    country: Malaysia
+
+  - name: "Sunway University"
+    url: "https://sunway.edu.my/university/events"
+    country: Malaysia
+
+  - name: "Monash Malaysia"
+    url: "https://www.monash.edu.my/research/events"
+    country: Malaysia
+
+  - name: "APU (Asia Pacific University)"
+    url: "https://www.apu.edu.my/events"
+    country: Malaysia
+
+  - name: "Taylor's University"
+    url: "https://university.taylors.edu.my/en/events.html"
+    country: Malaysia
+
+# ── Professional & technical bodies ──────────────
+organizations:
+  - name: "IEEE Malaysia"
+    url: "https://ieeemy.org/events/"
+    country: Malaysia
+
+  - name: "IEM (Institution of Engineers Malaysia)"
+    url: "https://www.iem.org.my/event"
+    country: Malaysia
+
+  - name: "MyCERT / CyberSecurity Malaysia"
+    url: "https://www.cybersecurity.my/en/events/events/main/index.html"
+    country: Malaysia
+
+  - name: "MDEC (Malaysia Digital Economy)"
+    url: "https://mdec.my/events/"
+    country: Malaysia
+
+  - name: "ACM Malaysia"
+    url: "https://www.acm.org/conferences"
+    country: International
+
+  - name: "IEEE Spectrum Events"
+    url: "https://spectrum.ieee.org/events"
+    country: International
+
+# ── Company / industry events ─────────────────────
+companies:
+  - name: "Intel Malaysia"
+    url: "https://jobs.intel.com/en/events"
+    country: Malaysia
+
+  - name: "Grab Careers"
+    url: "https://grb.to/events"
+    country: Regional
+
+  - name: "Petronas Digital"
+    url: "https://www.petronas.com/events"
+    country: Malaysia
+
+  - name: "TM (Telekom Malaysia)"
+    url: "https://www.tm.com.my/AboutTM/Events/Pages/Events.aspx"
+    country: Malaysia
+
+  - name: "Google Students"
+    url: "https://developers.google.com/community/gdsc/events"
+    country: International
+
+  - name: "Microsoft Events"
+    url: "https://events.microsoft.com/?timeperiod=next30Days&isSharedPage=true&search=Malaysia"
+    country: International
+
+  - name: "AWS Events"
+    url: "https://aws.amazon.com/events/"
+    country: International
+
+# ── Event aggregators ─────────────────────────────
+aggregators:
+  - name: "Eventbrite Malaysia Tech"
+    url: "https://www.eventbrite.com/d/malaysia/technology/"
+    country: Malaysia
+
+  - name: "Meetup Malaysia Tech"
+    url: "https://www.meetup.com/find/?location=my&keywords=technology"
+    country: Malaysia
+
+  - name: "Devfolio Hackathons"
+    url: "https://devfolio.co/hackathons"
+    country: International
+
+  - name: "MLH (Major League Hacking)"
+    url: "https://mlh.io/seasons/2025/events"
+    country: International
+
+  - name: "Hackathon.io"
+    url: "https://www.hackathon.io/events"
+    country: International
+
+# ── Instagram accounts to monitor ────────────────
+instagram_accounts:
+  - ieee_malaysia
+  - ieeemysection
+  - mdec_malaysia
+  - mydigital_official
+  - utm_official
+  - um_malaysia
+  - utp_official
+  - mmu.edu.my
+  - sunwayuniversity
+  - monashmalaysia
+
+# ── Search queries for DuckDuckGo discovery ───────
+search_queries:
+  - "EE CS competition Malaysia 2025 2026"
+  - "engineering hackathon Malaysia 2025"
+  - "tech career fair Malaysia 2025"
+  - "university Malaysia engineering workshop 2025"
+  - "IEEE Malaysia conference 2025"
+  - "computer science competition Malaysia students"
+  - "electrical engineering internship event Malaysia"
+  - "coding competition Malaysia open 2025"
+  - "robotics competition Malaysia 2025"
+  - "cybersecurity CTF Malaysia 2025"
+
+# ── Scheduler settings ────────────────────────────
+scheduler:
+  run_time: "08:00"         # daily run at 8am local time
+  timezone: "Asia/Kuala_Lumpur"
+  retry_on_failure: true
+  max_retries: 3
+
+# ── Dashboard settings ────────────────────────────
+dashboard:
+  title: "EE & CS Event Tracker"
+  default_filter_months: 6
+  show_past_events: false
+
+# ── Email digest (optional) ───────────────────────
+# Set enabled: true and fill in credentials to receive a daily email
+# when new events are found. For Gmail use an App Password (not your
+# main password): https://myaccount.google.com/apppasswords
+email:
+  enabled: false
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  username: ""       # your Gmail address
+  password: ""       # Gmail App Password
+  to: ""             # recipient (leave blank to send to yourself)
