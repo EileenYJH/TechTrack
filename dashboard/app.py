@@ -239,7 +239,8 @@ with tab_list:
             eid    = ev.get("id", "")
             cat    = ev.get("category", "Other")
             title  = ev.get("title", "Untitled")
-            url    = ev.get("event_url", "#")
+            url    = ev.get("event_url") or "#"
+            if url in ("null", "None", ""): url = "#"
             src    = ev.get("source_name", "")
             start  = _parse_date(ev.get("start_date"))
             dead   = _parse_date(ev.get("deadline"))

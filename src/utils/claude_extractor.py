@@ -113,7 +113,13 @@ def extract_events(page_text: str, source_url: str, source_name: str) -> list[di
         if not isinstance(parsed, list):
             return []
 
-        return [_normalise(e) for e in parsed if isinstance(e, dict) and e.get("title") or e.get("name")]
+        results = [_normalise(e) for e in parsed if isinstance(e, dict) and (e.get("title") or e.get("name"))]
+        # Strip any "null" strings the model may have written
+        for r in results:
+            for k, v in r.items():
+                if v in ("null", "None", "none", ""):
+                    r[k] = None
+        return results
 
     except _requests.exceptions.ConnectionError:
         print("[Ollama] Not running — start Ollama from the system tray or run: ollama serve")
