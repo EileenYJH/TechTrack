@@ -67,13 +67,34 @@ class SearchScraper:
         if not any(kw.lower() in combined.lower() for kw in self.keywords):
             return None
 
-        # Try to get more detail from the page
+        # Try Claude extraction on the actual page for richer data
+        from ..utils.claude_extractor import extract_events, parse_date
         html = get_html(url)
-        full_text = ""
         if html:
             soup = BeautifulSoup(html, "lxml")
-            full_text = soup.get_text(separator="\n")[:3000]
+            page_text = soup.get_text(separator="\n", strip=True)
+            claude_results = extract_events(page_text, url, title)
+            if claude_results:
+                r = claude_results[0]
+                return Event(
+                    title=(r.get("title") or title)[:200],
+                    source_name="Web Search",
+                    source_url=url,
+                    event_url=r.get("event_url") or url,
+                    category=r.get("category") or "Other",
+                    country=self._guess_country(url + " " + combined),
+                    description=(r.get("description") or snippet)[:500],
+                    start_date=parse_date(r.get("start_date")),
+                    end_date=parse_date(r.get("end_date")),
+                    deadline=parse_date(r.get("deadline")),
+                    location=r.get("location") or "",
+                    organizer=r.get("organizer") or "",
+                )
+            full_text = page_text[:3000]
+        else:
+            full_text = ""
 
+        # Fallback: regex-based extraction from snippet/page text
         date_text = full_text or snippet
         start_date, end_date, deadline = extract_dates(date_text)
         category = classify_event(title, snippet, CATEGORY_KEYWORDS)
@@ -82,7 +103,7 @@ class SearchScraper:
         return Event(
             title=title[:200],
             source_name="Web Search",
-            source_url="https://html.duckduckgo.com",
+            source_url=url,
             event_url=url,
             category=category,
             country=country,

@@ -39,25 +39,46 @@ class WebScraper:
         self.keywords = keywords
 
     def scrape(self) -> list[Event]:
-        events: list[Event] = []
         html = get_html(self.source["url"])
         if not html:
-            return events
+            return []
 
         soup = BeautifulSoup(html, "lxml")
-        event_links = self._find_event_links(soup, self.source["url"])
+        page_text = soup.get_text(separator="\n", strip=True)
 
-        for url, title in event_links[:30]:  # cap at 30 per source
+        # Try Claude extraction first — smarter and faster (1 API call vs 30 HTTP requests)
+        from ..utils.claude_extractor import extract_events, parse_date
+        claude_results = extract_events(page_text, self.source["url"], self.source["name"])
+        if claude_results:
+            return [self._result_to_event(r, parse_date) for r in claude_results]
+
+        # Fallback: traditional BeautifulSoup + link-following
+        events: list[Event] = []
+        event_links = self._find_event_links(soup, self.source["url"])
+        for url, title in event_links[:30]:
             polite_sleep(0.5, 1.5)
             event = self._scrape_event_page(url, title)
             if event:
                 events.append(event)
-
-        # Fallback: if no linked events, treat the page itself as a listing
         if not events:
             events = self._parse_listing_page(soup, self.source["url"])
-
         return events
+
+    def _result_to_event(self, r: dict, parse_date) -> Event:
+        return Event(
+            title=(r.get("title") or "")[:200],
+            source_name=self.source["name"],
+            source_url=self.source["url"],
+            event_url=r.get("event_url") or self.source["url"],
+            category=r.get("category") or "Other",
+            country=self.source.get("country", "Unknown"),
+            description=(r.get("description") or "")[:500],
+            start_date=parse_date(r.get("start_date")),
+            end_date=parse_date(r.get("end_date")),
+            deadline=parse_date(r.get("deadline")),
+            location=r.get("location") or "",
+            organizer=r.get("organizer") or self.source["name"],
+        )
 
     def _find_event_links(self, soup: BeautifulSoup, base_url: str) -> list[tuple[str, str]]:
         seen: set[str] = set()
