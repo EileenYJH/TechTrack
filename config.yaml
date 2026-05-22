@@ -42,15 +42,15 @@ categories:
 # ── University event pages ────────────────────────
 universities:
   - name: "UTM (Universiti Teknologi Malaysia)"
-    url: "https://www.utm.my/events/"
+    url: "https://events.utm.my/"
     country: Malaysia
 
   - name: "UM (Universiti Malaya)"
-    url: "https://www.um.edu.my/events"
+    url: "https://umevent.um.edu.my/"
     country: Malaysia
 
   - name: "UTP (Universiti Teknologi Petronas)"
-    url: "https://www.utp.edu.my/Pages/News-Events/Events.aspx"
+    url: "https://ibest.utp.edu.my/calendar/event"
     country: Malaysia
 
   - name: "MMU (Multimedia University)"
@@ -62,80 +62,64 @@ universities:
     country: Malaysia
 
   - name: "UTAR"
-    url: "https://www.utar.edu.my/events.jsp"
+    url: "https://news.utar.edu.my/"
     country: Malaysia
 
   - name: "Sunway University"
-    url: "https://sunway.edu.my/university/events"
+    url: "https://university.sunway.edu.my/events"
     country: Malaysia
 
   - name: "Monash Malaysia"
-    url: "https://www.monash.edu.my/research/events"
+    url: "https://www.monash.edu.my/pages/upcoming"
     country: Malaysia
 
   - name: "APU (Asia Pacific University)"
-    url: "https://www.apu.edu.my/events"
+    url: "https://www.apu.edu.my/news-happening"
     country: Malaysia
 
   - name: "Taylor's University"
-    url: "https://university.taylors.edu.my/en/events.html"
+    url: "https://university.taylors.edu.my/en/student-life/events.html"
     country: Malaysia
 
 # ── Professional & technical bodies ──────────────
 organizations:
-  - name: "IEEE Malaysia"
-    url: "https://ieeemy.org/events/"
+  - name: "IEEE Malaysia Section"
+    url: "https://ieeemy.org/malaysiasection/"
     country: Malaysia
 
   - name: "IEM (Institution of Engineers Malaysia)"
-    url: "https://www.iem.org.my/event"
+    url: "https://www.myiem.org.my/events/main.aspx"
     country: Malaysia
 
-  - name: "MyCERT / CyberSecurity Malaysia"
-    url: "https://www.cybersecurity.my/en/events/events/main/index.html"
+  - name: "CyberSecurity Malaysia"
+    url: "https://www.cybersecurity.my/en/events/"
     country: Malaysia
 
   - name: "MDEC (Malaysia Digital Economy)"
-    url: "https://mdec.my/events/"
+    url: "https://www.mdec.my/media-release/news-press-release"
     country: Malaysia
 
-  - name: "ACM Malaysia"
-    url: "https://www.acm.org/conferences"
-    country: International
-
-  - name: "IEEE Spectrum Events"
-    url: "https://spectrum.ieee.org/events"
+  - name: "IEEE Events"
+    url: "https://events.ieee.org/"
     country: International
 
 # ── Company / industry events ─────────────────────
 companies:
-  - name: "Intel Malaysia"
-    url: "https://jobs.intel.com/en/events"
-    country: Malaysia
-
-  - name: "Grab Careers"
-    url: "https://grb.to/events"
-    country: Regional
-
-  - name: "Petronas Digital"
-    url: "https://www.petronas.com/events"
-    country: Malaysia
-
-  - name: "TM (Telekom Malaysia)"
-    url: "https://www.tm.com.my/AboutTM/Events/Pages/Events.aspx"
-    country: Malaysia
-
-  - name: "Google Students"
+  - name: "Google GDSC Events"
     url: "https://developers.google.com/community/gdsc/events"
     country: International
 
-  - name: "Microsoft Events"
+  - name: "Microsoft Events Malaysia"
     url: "https://events.microsoft.com/?timeperiod=next30Days&isSharedPage=true&search=Malaysia"
     country: International
 
   - name: "AWS Events"
     url: "https://aws.amazon.com/events/"
     country: International
+
+  - name: "Petronas"
+    url: "https://www.petronas.com/news-media"
+    country: Malaysia
 
 # ── Event aggregators ─────────────────────────────
 aggregators:
@@ -152,38 +136,45 @@ aggregators:
     country: International
 
   - name: "MLH (Major League Hacking)"
-    url: "https://mlh.io/seasons/2025/events"
+    url: "https://mlh.io/seasons/2026/events"
     country: International
 
   - name: "Hackathon.io"
     url: "https://www.hackathon.io/events"
     country: International
 
+  - name: "Devpost Hackathons"
+    url: "https://devpost.com/hackathons"
+    country: International
+
+  - name: "JomHack Malaysia"
+    url: "https://www.jomhack.com/"
+    country: Malaysia
+
+  - name: "10times Malaysia Technology"
+    url: "https://10times.com/malaysia/technology"
+    country: Malaysia
+
+  - name: "10times Malaysia AI"
+    url: "https://10times.com/malaysia/artificial-intelligence"
+    country: Malaysia
+
 # ── Instagram accounts to monitor ────────────────
-instagram_accounts:
-  - ieee_malaysia
-  - ieeemysection
-  - mdec_malaysia
-  - mydigital_official
-  - utm_official
-  - um_malaysia
-  - utp_official
-  - mmu.edu.my
-  - sunwayuniversity
-  - monashmalaysia
+# Instagram blocks unauthenticated scraping — leave empty.
+instagram_accounts: []
 
 # ── Search queries for DuckDuckGo discovery ───────
 search_queries:
-  - "EE CS competition Malaysia 2025 2026"
-  - "engineering hackathon Malaysia 2025"
-  - "tech career fair Malaysia 2025"
-  - "university Malaysia engineering workshop 2025"
-  - "IEEE Malaysia conference 2025"
-  - "computer science competition Malaysia students"
-  - "electrical engineering internship event Malaysia"
-  - "coding competition Malaysia open 2025"
-  - "robotics competition Malaysia 2025"
-  - "cybersecurity CTF Malaysia 2025"
+  - "EE CS competition Malaysia 2026"
+  - "engineering hackathon Malaysia 2026"
+  - "tech career fair Malaysia 2026"
+  - "university Malaysia engineering workshop 2026"
+  - "IEEE Malaysia conference 2026"
+  - "computer science competition Malaysia students 2026"
+  - "electrical engineering event Malaysia 2026"
+  - "coding competition Malaysia open 2026"
+  - "robotics competition Malaysia 2026"
+  - "cybersecurity CTF Malaysia 2026"
 
 # ── Scheduler settings ────────────────────────────
 scheduler:

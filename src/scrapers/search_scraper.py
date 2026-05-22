@@ -1,22 +1,19 @@
 """
-Discovery scraper: uses DuckDuckGo HTML search (no API key required)
+Discovery scraper: uses DuckDuckGo search (via duckduckgo-search package)
 to find event pages from universities and companies not in the fixed list.
 """
 from __future__ import annotations
 
 import re
-from urllib.parse import quote_plus, urlparse
-from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 from ..models import Event
 from ..utils.http import get_html, polite_sleep
 from ..utils.date_parser import extract_dates, classify_event, CATEGORY_KEYWORDS
 
-DDG_URL = "https://html.duckduckgo.com/html/?q={query}"
-
 _SKIP_DOMAINS = {
     "facebook.com", "twitter.com", "x.com", "youtube.com",
-    "wikipedia.org", "reddit.com", "quora.com",
+    "wikipedia.org", "reddit.com", "quora.com", "linkedin.com",
 }
 
 
@@ -45,29 +42,20 @@ class SearchScraper:
         return events
 
     def _ddg_search(self, query: str) -> list[dict]:
-        url = DDG_URL.format(query=quote_plus(query))
-        html = get_html(url)
-        if not html:
+        try:
+            from duckduckgo_search import DDGS
+            results = []
+            with DDGS() as ddgs:
+                for r in ddgs.text(query, max_results=10):
+                    results.append({
+                        "title": r.get("title", ""),
+                        "url": r.get("href", ""),
+                        "snippet": r.get("body", ""),
+                    })
+            return results
+        except Exception as e:
+            print(f"[Search] DDG error for '{query}': {e}")
             return []
-
-        soup = BeautifulSoup(html, "lxml")
-        results = []
-
-        for result in soup.select(".result"):
-            title_el = result.select_one(".result__title a")
-            snippet_el = result.select_one(".result__snippet")
-            if not title_el:
-                continue
-            href = title_el.get("href", "")
-            # DDG wraps links — extract the real URL
-            real_url = self._extract_real_url(href)
-            results.append({
-                "title": title_el.get_text(strip=True),
-                "url": real_url,
-                "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
-            })
-
-        return results[:10]
 
     def _scrape_result(self, result: dict) -> Event | None:
         title = result["title"]
@@ -104,17 +92,6 @@ class SearchScraper:
             location=self._guess_location(combined + full_text[:500]),
             organizer="",
         )
-
-    @staticmethod
-    def _extract_real_url(href: str) -> str:
-        # DDG redirect: //duckduckgo.com/l/?uddg=<encoded-url>
-        m = re.search(r"uddg=([^&]+)", href)
-        if m:
-            from urllib.parse import unquote
-            return unquote(m.group(1))
-        if href.startswith("http"):
-            return href
-        return ""
 
     @staticmethod
     def _is_skip_domain(url: str) -> bool:
