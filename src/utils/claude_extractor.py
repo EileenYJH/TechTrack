@@ -1,109 +1,130 @@
 """
-Claude-powered event extraction. Uses Claude Haiku to read page text and
-return structured event data — far more accurate than regex/CSS selectors.
-Falls back gracefully (returns []) if ANTHROPIC_API_KEY is not configured.
+AI-powered event extraction using Ollama (local LLM).
+Reads page text and returns structured event data — far more accurate than regex/CSS selectors.
+Falls back gracefully (returns []) if Ollama is not running.
+
+Setup:
+  1. Install Ollama: https://ollama.com/download/windows
+  2. Pull a model: ollama pull llama3.2
+  3. Ollama runs automatically in the background after install.
 """
 from __future__ import annotations
 
 import json
-import os
+import requests as _requests
 from datetime import date, datetime
 from typing import Optional
 
-_client = None
-
-
-def _get_api_key() -> Optional[str]:
-    try:
-        import streamlit as st
-        key = st.secrets.get("ANTHROPIC_API_KEY")
-        if key:
-            return key
-    except Exception:
-        pass
-    return os.environ.get("ANTHROPIC_API_KEY")
-
-
-def _get_client():
-    global _client
-    if _client is not None:
-        return _client
-    api_key = _get_api_key()
-    if not api_key:
-        return None
-    try:
-        from anthropic import Anthropic
-        _client = Anthropic(api_key=api_key)
-    except ImportError:
-        print("[Claude] anthropic package not installed — run: pip install anthropic")
-    return _client
-
+OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
+OLLAMA_MODEL = "llama3.2"
 
 _SYSTEM_PROMPT = """You are an event extraction assistant for a Malaysian engineering and CS student tracker.
 
-Given text scraped from a webpage, extract all relevant upcoming events and return a JSON array.
+Given text scraped from a webpage, extract all relevant upcoming events.
 
 Include only events related to: competitions, hackathons, career fairs, conferences, workshops, bootcamps, seminars, tech talks, company visits, robotics, embedded systems, AI/ML, cybersecurity, coding challenges, datathons, internship fairs.
 
 Skip: past events, general news, unrelated content, staff announcements.
 
-For each event return a JSON object with these exact keys:
-- "title": event name (string, required)
-- "start_date": "YYYY-MM-DD" or null
-- "end_date": "YYYY-MM-DD" or null
-- "deadline": registration/submission deadline "YYYY-MM-DD" or null
-- "category": one of "Competition", "Career Fair", "Conference", "Workshop / Bootcamp", "Seminar / Talk", "Company Visit", "Hackathon", "Other"
-- "location": venue or city (string or null)
-- "organizer": organizing body (string or null)
-- "description": 1-2 sentence summary (string)
-- "event_url": direct URL to the event if found in the text (string or null)
+Respond with a JSON object containing an "events" array. Each event must have these exact keys:
+{{
+  "events": [
+    {{
+      "title": "event name here",
+      "start_date": "YYYY-MM-DD or null",
+      "end_date": "YYYY-MM-DD or null",
+      "deadline": "YYYY-MM-DD or null",
+      "category": "one of: Competition, Career Fair, Conference, Workshop / Bootcamp, Seminar / Talk, Company Visit, Hackathon, Other",
+      "location": "venue or city or null",
+      "organizer": "organizing body or null",
+      "description": "1-2 sentence summary",
+      "event_url": "direct URL if found in text or null"
+    }}
+  ]
+}}
 
-Return ONLY a valid JSON array. No explanation, no markdown fences. If no relevant events found, return [].
+If no relevant events found, return {{"events": []}}.
 Today is {today}. Do not include events that have already ended."""
+
+# Field name aliases the model might use instead of our canonical names
+_FIELD_ALIASES = {
+    "title": ["name", "event_name", "event_title"],
+    "start_date": ["date", "event_date", "start", "from"],
+    "end_date": ["end", "to", "until"],
+    "deadline": ["registration_deadline", "reg_deadline", "apply_by", "due_date"],
+    "event_url": ["url", "link", "href"],
+    "organizer": ["organisation", "organization", "hosted_by", "host"],
+}
+
+
+def _normalise(event: dict) -> dict:
+    """Map any alias field names to our canonical names."""
+    out = dict(event)
+    for canonical, aliases in _FIELD_ALIASES.items():
+        if canonical not in out:
+            for alias in aliases:
+                if alias in out:
+                    out[canonical] = out.pop(alias)
+                    break
+    return out
 
 
 def extract_events(page_text: str, source_url: str, source_name: str) -> list[dict]:
-    """Extract structured events from raw page text using Claude Haiku.
+    """Extract structured events from raw page text using a local Ollama model.
 
-    Returns [] if API key not configured, no events found, or on any error.
-    Uses prompt caching so repeated calls within 5 min reuse the cached system prompt.
+    Returns [] if Ollama is not running, no events found, or on any error.
     """
-    client = _get_client()
-    if not client:
-        return []
-
     today = date.today().isoformat()
-    trimmed = page_text[:8000]
+    trimmed = page_text[:3000]
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2048,
-            system=[{
-                "type": "text",
-                "text": _SYSTEM_PROMPT.format(today=today),
-                "cache_control": {"type": "ephemeral"},
-            }],
-            messages=[{
-                "role": "user",
-                "content": f"Source: {source_name}\nURL: {source_url}\n\n{trimmed}",
-            }],
+        resp = _requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "messages": [
+                    {"role": "system", "content": _SYSTEM_PROMPT.format(today=today)},
+                    {"role": "user", "content": f"Source: {source_name}\nURL: {source_url}\n\n{trimmed}"},
+                ],
+                "stream": False,
+                "format": "json",
+            },
+            timeout=120,
         )
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```", 1)[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.rsplit("```", 1)[0]
-        results = json.loads(raw.strip())
-        return results if isinstance(results, list) else []
+        resp.raise_for_status()
+        raw = resp.json()["message"]["content"].strip()
+
+        parsed = json.loads(raw)
+        # Unwrap {"events": [...]} or any dict wrapping a list
+        if isinstance(parsed, dict):
+            for key in ("events", "results", "data", "items"):
+                if key in parsed and isinstance(parsed[key], list):
+                    parsed = parsed[key]
+                    break
+            else:
+                # Take first list value
+                for v in parsed.values():
+                    if isinstance(v, list):
+                        parsed = v
+                        break
+                else:
+                    parsed = []
+
+        if not isinstance(parsed, list):
+            return []
+
+        return [_normalise(e) for e in parsed if isinstance(e, dict) and e.get("title") or e.get("name")]
+
+    except _requests.exceptions.ConnectionError:
+        print("[Ollama] Not running — start Ollama from the system tray or run: ollama serve")
+        return []
     except Exception as e:
-        print(f"[Claude] Extraction error for {source_name}: {e}")
+        print(f"[Ollama] Extraction error for {source_name}: {e}")
         return []
 
 
 def parse_date(val: Optional[str]) -> Optional[datetime]:
-    """Convert ISO date string from Claude output to datetime."""
+    """Convert ISO date string from model output to datetime."""
     if not val:
         return None
     try:

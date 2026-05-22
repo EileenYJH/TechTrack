@@ -144,13 +144,16 @@ def toggle_bookmark(event_id: str) -> bool:
 
 
 def log_run(source: str, found: int, added: int, error: str = "") -> None:
-    ph = _ph()
-    with _db() as con:
-        cur = con.cursor()
-        cur.execute(
-            f"INSERT INTO run_log (ran_at,source,found,added,error) VALUES ({ph},{ph},{ph},{ph},{ph})",
-            (datetime.now().isoformat(), source, found, added, error),
-        )
+    try:
+        ph = _ph()
+        with _db() as con:
+            cur = con.cursor()
+            cur.execute(
+                f"INSERT INTO run_log (ran_at,source,found,added,error) VALUES ({ph},{ph},{ph},{ph},{ph})",
+                (datetime.now().isoformat(), source, found, added, error),
+            )
+    except Exception:
+        pass  # don't crash the runner if DB is temporarily unreachable
 
 
 def get_all_events(
